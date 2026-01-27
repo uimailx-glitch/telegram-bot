@@ -1,14 +1,16 @@
 import logging
 import re
+import os
+from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.constants import ParseMode
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Dictionary of facilities: code -> status
-# Status: 'Early Accepts', 'On-time Only', '50/50'
 FACILITIES = {
     'BHM1': 'Early Accepts',
     'HSV1': 'Early Accepts',
@@ -145,7 +147,7 @@ FACILITIES = {
     'MKE7': 'Early Accepts'
 }
 
-# Added locations for facilities
+# Locations
 LOCATIONS = {
     'BHM1': 'Bessemer, AL',
     'HSV1': 'Madison, AL',
@@ -284,56 +286,77 @@ LOCATIONS = {
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Spy: /start command received from user!")
-    """Send a message when the command /start is issued."""
     await update.message.reply_text(
         'Hi! Send me an Amazon facility code (e.g., FWA4) and I\'ll tell you if it accepts early arrivals or not.\n'
-        'Statuses: Early Accepts, On-time Only, or 50/50.'
+        'Statuses: Early Accepts, On-time Only, or 50/50.',
+        parse_mode=ParseMode.MARKDOWN
     )
 
 def extract_code(text: str) -> str:
-    """Extract potential facility code from message: uppercase letters followed by numbers."""
     match = re.search(r'\b[A-Z]{3,4}\d+\b', text.upper())
     return match.group(0) if match else None
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Spy: Message received from user!")
-    """Handle incoming messages and check facility code."""
     text = update.message.text
     code = extract_code(text)
     logger.info(f"Spy: Extracted code '{code}' from message")
-   
+  
     if not code:
         await update.message.reply_text('Please send a valid Amazon facility code (e.g., FWA4).')
         return
-   
+  
     status = FACILITIES.get(code, 'Unknown')
     location = LOCATIONS.get(code, '')
-    if location:
-        loc_text = f'{location} - '
-    else:
-        loc_text = ''
+    loc_text = f'{location} - ' if location else ''
     if status == 'Unknown':
         await update.message.reply_text(f'{loc_text}{code}: Facility {code} not found in my list. It might accept early—check latest info!')
     else:
         emoji = '✅' if 'Early' in status else '❌' if 'Only' in status else '⚖️'
         await update.message.reply_text(f'{loc_text}{code}: {status} {emoji}')
-    
-    # Log for debugging
+   
     logger.info(f"Processed code '{code}' for user {update.effective_user.id}: {status}")
 
-def main() -> None:
-    """Start the bot."""
-    TOKEN = '8559305303:AAEiZ1AehghmCDlLxamTr_iFvJC3aAMquzk'
-   
-    # Create the Application
-    application = Application.builder().token(TOKEN).build()
+def create_app() -> Flask:
+    TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8559305303:AAEiZ1AehghmCDlLxamTr_iFvJC3aAMquzk')
+    logger.info(f"Bot token loaded (length: {len(TOKEN)}) from {'env var' if os.environ.get('TELEGRAM_BOT_TOKEN') else 'fallback'}")
+    app = Flask(__name__)
+
+    application = Application.builder().token(TOKEN).build()  # FIXED: Removed old polling cleanup
     
-    # Add handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    # Run the bot until the user presses Ctrl-C
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+    @app.route(f'/{TOKEN}', methods=['POST'])
+    def webhook():
+        try:
+            update = Update.de_json(request.get_json(force=True), application.bot)
+            application.process_update(update)
+            logger.info("Webhook update processed")
+            return 'OK'
+        except Exception as e:
+            logger.error(f"Webhook error: {e}")
+            return 'Error', 500
+
+    @app.route('/set_webhook', methods=['GET'])
+    def set_webhook():
+        webhook_url = f"https://{request.host}/{TOKEN}"
+        try:
+            application.bot.set_webhook(url=webhook_url)
+            logger.info(f"Webhook set: {webhook_url}")
+            return f"Webhook set to {webhook_url}"
+        except Exception as e:
+            logger.error(f"Set webhook error: {e}")
+            return f"Error setting webhook: {e}"
+
+    @app.route('/')
+    def home():
+        return "Amazon Facility Bot is running! Visit /set_webhook to activate."
+
+    logger.info("Flask app created successfully")
+    return app
 
 if __name__ == '__main__':
-    main()
+    app = create_app()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
