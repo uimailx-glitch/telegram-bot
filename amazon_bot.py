@@ -147,7 +147,6 @@ FACILITIES = {
     'MKE7': 'Early Accepts'
 }
 
-# Locations
 LOCATIONS = {
     'BHM1': 'Bessemer, AL',
     'HSV1': 'Madison, AL',
@@ -318,12 +317,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     logger.info(f"Processed code '{code}' for user {update.effective_user.id}: {status}")
 
 def create_app() -> Flask:
-    TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8559305303:AAEiZ1AehghmCDlLxamTr_iFvJC3aAMquzk')  # Your token added here (fallback)
+    TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8559305303:AAEiZ1AehghmCDlLxamTr_iFvJC3aAMquzk')
     logger.info(f"Bot token loaded (length: {len(TOKEN)}) from {'env var' if os.environ.get('TELEGRAM_BOT_TOKEN') else 'fallback'}")
     app = Flask(__name__)
 
-    application = Application.builder().token(TOKEN).build()
-   
+    application = Application.builder().token(TOKEN).build()  # Clean build—no polling junk
+    
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
