@@ -1,1 +1,1 @@
-amazon_bot.py
+python amazon_bot.py
