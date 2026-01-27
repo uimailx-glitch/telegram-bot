@@ -1,1 +1,1 @@
-web: python Telegram_bot.py
+web: python amazon_bot.py
