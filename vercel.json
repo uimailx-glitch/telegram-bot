@@ -1,14 +1,14 @@
 {
   "builds": [
     {
-      "src": "Telegram_bot.py",
+      "src": "amazon_bot.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "Telegram_bot.py"
+      "dest": "amazon_bot.py"
     }
   ]
 }
