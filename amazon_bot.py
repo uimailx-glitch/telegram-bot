@@ -318,12 +318,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     logger.info(f"Processed code '{code}' for user {update.effective_user.id}: {status}")
 
 def create_app() -> Flask:
-    TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8559305303:AAEiZ1AehghmCDlLxamTr_iFvJC3aAMquzk')
+    TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8559305303:AAEiZ1AehghmCDlLxamTr_iFvJC3aAMquzk')  # Your token added here (fallback)
     logger.info(f"Bot token loaded (length: {len(TOKEN)}) from {'env var' if os.environ.get('TELEGRAM_BOT_TOKEN') else 'fallback'}")
     app = Flask(__name__)
 
-    application = Application.builder().token(TOKEN).build()  # FIXED: Removed old polling cleanup
-    
+    application = Application.builder().token(TOKEN).build()
+   
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
