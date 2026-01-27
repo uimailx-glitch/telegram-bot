@@ -1,2 +1,2 @@
 #!/bin/bash
-python Telegram_bot.py
+python amazon_bot.py
