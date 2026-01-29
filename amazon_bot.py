@@ -12,7 +12,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Dictionary of facilities: code -> status
-# Status: 'Early Accepts', 'On-time Only', '50/50'
 FACILITIES = {
     'BHM1': 'Early Accepts',
     'HSV1': 'Early Accepts',
@@ -146,10 +145,10 @@ FACILITIES = {
     'SEA8': 'Early Accepts',
     'MKE1': 'Early Accepts',
     'MKE5': 'Early Accepts',
-    'MKE7': 'Early Accepts'
+    'MKE7': 'Early Accepts',
 }
 
-# Locations for facilities
+# Added locations for facilities
 LOCATIONS = {
     'BHM1': 'Bessemer, AL',
     'HSV1': 'Madison, AL',
@@ -283,7 +282,7 @@ LOCATIONS = {
     'SEA8': 'Seattle, WA',
     'MKE1': 'Milwaukee, WI',
     'MKE5': 'Oak Creek, WI',
-    'MKE7': 'Pleasant Prairie, WI'
+    'MKE7': 'Pleasant Prairie, WI',
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -292,7 +291,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Statuses: Early Accepts, On-time Only, or 50/50."
     )
 
-def extract_code(text: str) -> str | None:
+def extract_code(text: str):
     match = re.search(r"\b[A-Z]{3,4}\d+\b", text.upper())
     return match.group(0) if match else None
 
@@ -318,12 +317,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 def main() -> None:
     TOKEN = os.environ.get("BOT_TOKEN")
-
     if not TOKEN:
         raise RuntimeError("BOT_TOKEN is missing. Add it in Railway Variables.")
 
     application = Application.builder().token(TOKEN).build()
-
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
@@ -331,4 +328,4 @@ def main() -> None:
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
-    main()
+    main()   
